@@ -25,6 +25,10 @@
 - Tailwind CSS v4
 - خط Cairo (يدعم العربية)
 
+## النسخة المباشرة
+
+[https://ecozed-ld-promt-gen.vercel.app/](https://ecozed-ld-promt-gen.vercel.app/)
+
 ## التشغيل
 
 ```bash
