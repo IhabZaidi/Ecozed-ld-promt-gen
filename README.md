@@ -1,16 +1,59 @@
-# React + Vite
+# Ecozed landing page promt generator
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+مولد أوامر التصميم للمنتجات الإعلانية - Nano Banana Pro
 
-Currently, two official plugins are available:
+أداة ويب مجانية ومفتوحة المصدر لتوليد أوامر تصميم احترافية للصفحات الهبوطية الإعلانية، مبنية بـ React + Vite + Tailwind CSS.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## المميزات
 
-## React Compiler
+- **الوضع المتقدم** — تعبئة معلومات المنتج يدوياً (الاسم، الفوائد، السعر، الألوان، التقييمات)
+- **الوضع السريع** — إدخال رابط صفحة المنتج فقط، والذكاء الاصطناعي يستخرج المعلومات تلقائياً
+- **6 أنماط تصميم**:
+  - افتراضي — النمط الكامل المقسم
+  - تخفيضات وسرعة — نبرة حادة مع عد تنازلي
+  - سرد قصصي — سينمائي درامي
+  - فخامة — راقي وأنيق
+  - مشكلة وحل — PAS
+  - مقارنة — جدول مقارنة مع المنافسين
+- **حقل معلومات إضافية** لإعطاء تعليمات خاصة للذكاء الاصطناعي
+- واجهة عربية بالكامل مع دعم RTL
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## التقنيات
 
-## Expanding the ESLint configuration
+- React 19
+- Vite 6
+- Tailwind CSS v4
+- خط Cairo (يدعم العربية)
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## التشغيل
+
+```bash
+npm install
+npm run dev
+```
+
+ثم افتح المتصفح على `http://localhost:5173`
+
+## البناء للإنتاج
+
+```bash
+npm run build
+```
+
+المخرجات في مجلد `dist/`.
+
+## المشروع الأصلي
+
+هذا المشروع هو جزء من منظومة **Ecozed** — منصة مجانية ومفتوحة المصدر لإدارة المتاجر الإلكترونية:
+
+- [Ecozed - Free & Open Source E-commerce Manager](https://github.com/IhabZaidi/Ecozed)
+- [مولد أوامر التصميم](https://github.com/IhabZaidi/Ecozed-ld-promt-gen)
+
+## تواصل
+
+- **TikTok**: [@ihabzzz](https://www.tiktok.com/@ihabzzz)
+- **WhatsApp**: [+213796332534](https://wa.me/213796332534)
+
+---
+
+مبني بـ ❤️ بواسطة Ihab
