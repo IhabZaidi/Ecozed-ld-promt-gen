@@ -30,11 +30,26 @@ function App() {
   const [fastLanguage, setFastLanguage] = useState("");
   const [fastPrice, setFastPrice] = useState("");
   const [fastAdditionalInfo, setFastAdditionalInfo] = useState("");
+  const [abTest, setAbTest] = useState(false);
+  const [noHumans, setNoHumans] = useState(true);
+  const [menOnly, setMenOnly] = useState(true);
+  const [forceLanguage, setForceLanguage] = useState(true);
   const [style, setStyle] = useState("default");
   const [output, setOutput] = useState("");
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
   const outputRef = useRef(null);
+
+  const humanConstraint = () => {
+    if (noHumans) return "8. HUMAN RESTRICTION: Do NOT generate any humans, people, characters, or silhouettes in the design. Use only product imagery, icons, abstract graphics, and lifestyle elements without people.";
+    if (menOnly) return "8. HUMAN RESTRICTION: If including humans in the design, ONLY include men. Do NOT generate any women, female figures, or feminine silhouettes under any circumstances.";
+    return "";
+  };
+
+  const langForce = (language) => {
+    if (!forceLanguage) return "";
+    return `\n${humanConstraint() ? "9" : "8"}. LANGUAGE ENFORCEMENT: ALL text displayed in the design MUST be written strictly in ${language}. Absolutely NO text in any other language is allowed. Every headline, label, button, and caption must be in ${language}.`;
+  };
 
   const updateReview = (index, field, value) => {
     setReviews((prev) => {
@@ -79,6 +94,7 @@ function App() {
       reviewBlock,
       price,
       styleId: style,
+      abTest,
     });
   };
 
@@ -106,13 +122,14 @@ Extract ALL of the following product details from the page:
 - Any customer reviews, ratings, or testimonials
 - The overall vibe and target audience of the product
 ${fastAdditionalInfo.trim() ? `- EXTRA CONTEXT FROM USER: ${fastAdditionalInfo.trim()}` : ""}
+${abTest ? "\nIMPORTANT: After extraction, study TWO different marketing angles for this product and generate SEPARATE prompts for each angle. Label clearly as VERSION A and VERSION B with the angle name." : ""}
 
 ### PHASE 2: PERSUASIVE COPYWRITING
 Using the extracted information from Phase 1, craft compelling sales copy for this product using the structure outlined below. Provide this text clearly so I can review and utilize it.
 CRITICAL LANGUAGE INSTRUCTION: ALL copywriting in Phase 2 MUST be strictly written in ${fastLanguage}.
 
 ### PHASE 3: NANO BANANA PRO DESIGN PROMPT
-After writing the copy, generate a single, unified, READY-TO-USE design prompt for the image generator.
+After writing the copy, generate ${abTest ? "TWO separate, distinct" : "a single, unified,"} READY-TO-USE design prompt${abTest ? "s" : ""} for the image generator.${abTest ? "\nEach prompt must follow a different marketing angle (e.g. one emotional, one logical/feature-focused). Enclose each prompt in its own code block and label clearly as VERSION A - [angle] and VERSION B - [angle]." : ""}
 
 ---
 ### STRICT GUIDELINES FOR PHASE 3:
@@ -123,6 +140,7 @@ After writing the copy, generate a single, unified, READY-TO-USE design prompt f
 5. Typography: ALL localized text MUST be displayed in massive, ultra-bold typography (20px minimum equivalent). ONLY output the generated ${fastLanguage} text inside quotation marks " ". DO NOT output English structural labels like (Headline, Body).
 6. Final Cleanup: Replace all [bracketed placeholders] with your generated ${fastLanguage} text and strip out all structural labels.
 7. Text Direction: Ensure the layout logic fits the requested language.
+${humanConstraint()}${langForce(fastLanguage)}
 
 --- DESIGN PROMPT TEMPLATE ---
 Act as an expert E-commerce UI/UX Designer. Create an ultra-tall vertical infographic landing page IMAGE (aspect ratio 9:32 or longer) featuring the extracted product/bundle from the provided URL.
@@ -327,9 +345,14 @@ ${reviewBlock}
 * MASSIVE BLACK TEXT on BLUE Button: "[اختر الأفضل الآن - ${language}]"`,
   };
 
-  const buildNanoBananaPrompt = ({ language, productRef, dynamicColors, reviewBlock, price, styleId }) => {
+  const buildNanoBananaPrompt = ({ language, productRef, dynamicColors, reviewBlock, price, styleId, abTest }) => {
     const flow = designFlows[styleId] || designFlows.default;
     const designFlow = flow({ language, dynamicColors, price, reviewBlock });
+
+    const phase2 = abTest
+      ? `After writing the copy, generate TWO separate, distinct design prompts for the image generator. Each prompt must follow a different marketing angle (e.g. one emotional/storytelling, one logical/feature-focused). Enclose each prompt in its own code block and label clearly as VERSION A - [angle name] and VERSION B - [angle name].
+A/B TEST INSTRUCTION: Study the product and identify two distinct marketing angles. For each angle, write persuasive copy in Phase 1, then generate the corresponding design prompt in Phase 2.`
+      : `After writing the copy, generate a single, unified, READY-TO-USE design prompt for the image generator.`;
 
     return `### YOUR TASK INVOLVES TWO MAIN PHASES:
 
@@ -337,18 +360,19 @@ ${reviewBlock}
 First, craft compelling sales copy for this product using the structure outlined below. Provide this text clearly so I can review and utilize it.
 CRITICAL LANGUAGE INSTRUCTION: ALL copywriting in Phase 1 MUST be strictly written in ${language}.
 
-### PHASE 2: NANO BANANA PRO DESIGN PROMPT
-After writing the copy, generate a single, unified, READY-TO-USE design prompt for the image generator.
+### PHASE 2: NANO BANANA PRO DESIGN PROMPT${abTest ? "S (A/B TEST)" : ""}
+${phase2}
 
 ---
-### STRICT GUIDELINES FOR PHASE 2:
-1. Format: Enclose the complete design prompt within a single code block.
+### STRICT GUIDELINES FOR PHASE 2${abTest ? " (FOR EACH PROMPT)" : ""}:
+1. Format: Enclose ${abTest ? "each" : "the complete"} design prompt within a single code block.
 2. Product Integration: Visually describe the product in every section. Ensure the layout accommodates either a single item or a grouped bundle based on context.
 3. CRITICAL: Use the exact same product with all its visual details as shown in the attached image — do not alter or substitute the product design, packaging, or branding.
 4. Visual Elements: Include vivid, creative English descriptions for the visuals based on the image.
 5. Typography: ALL localized text MUST be displayed in massive, ultra-bold typography (20px minimum equivalent). ONLY output the generated ${language} text inside quotation marks " ". DO NOT output English structural labels like (Headline, Body).
 6. Final Cleanup: Replace all [bracketed placeholders] with your generated ${language} text and strip out all structural labels.
 7. Text Direction: Ensure the layout logic fits the requested language.
+${humanConstraint()}${langForce(language)}
 
 --- DESIGN PROMPT TEMPLATE ---
 Act as an expert E-commerce UI/UX Designer. Create an ultra-tall vertical infographic landing page IMAGE (aspect ratio 9:32 or longer) featuring the ${productRef} from the uploaded image.
@@ -641,6 +665,93 @@ ${designFlow}`;
               </div>
             </>
           )}
+
+          {/* A/B Test Checkbox */}
+          <label className="flex items-center gap-3 cursor-pointer select-none">
+            <div
+              onClick={() => setAbTest(!abTest)}
+              className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition cursor-pointer ${
+                abTest
+                  ? "bg-blue-600 border-blue-600"
+                  : "border-slate-300 bg-white"
+              }`}
+            >
+              {abTest && (
+                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </div>
+            <span className="text-sm font-medium text-slate-700">
+              اختبار A/B — توليد أمرين بتوجهين تسويقيين مختلفين
+            </span>
+          </label>
+
+          {/* No Humans Checkbox */}
+          <label className="flex items-center gap-3 cursor-pointer select-none">
+            <div
+              onClick={() => {
+                setNoHumans(!noHumans);
+                if (!noHumans) setMenOnly(false);
+              }}
+              className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition cursor-pointer ${
+                noHumans
+                  ? "bg-blue-600 border-blue-600"
+                  : "border-slate-300 bg-white"
+              }`}
+            >
+              {noHumans && (
+                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </div>
+            <span className="text-sm font-medium text-slate-700">
+              لا تولد بشر — منع ظهور أي أشخاص في التصميم
+            </span>
+          </label>
+
+          {/* Men Only Checkbox */}
+          <label className={`flex items-center gap-3 cursor-pointer select-none ${noHumans ? "opacity-40 pointer-events-none" : ""}`}>
+            <div
+              onClick={() => !noHumans && setMenOnly(!menOnly)}
+              className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition cursor-pointer ${
+                menOnly && !noHumans
+                  ? "bg-blue-600 border-blue-600"
+                  : "border-slate-300 bg-white"
+              }`}
+            >
+              {menOnly && !noHumans && (
+                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </div>
+            <span className="text-sm font-medium text-slate-700">
+              رجال فقط — توليد رجال فقط دون نساء
+            </span>
+          </label>
+
+          {/* Force Language Checkbox */}
+          <label className="flex items-center gap-3 cursor-pointer select-none">
+            <div
+              onClick={() => setForceLanguage(!forceLanguage)}
+              className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition cursor-pointer ${
+                forceLanguage
+                  ? "bg-blue-600 border-blue-600"
+                  : "border-slate-300 bg-white"
+              }`}
+            >
+              {forceLanguage && (
+                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </div>
+            <span className="text-sm font-medium text-slate-700">
+              فرض اللغة — التأكد من أن كل النصوص في التصميم بلغة الجمهور المستهدف
+            </span>
+          </label>
 
           {/* Style Selector */}
           <div>
