@@ -16,6 +16,15 @@ const promptStyles = [
   { id: "comparison", label: "مقارنة" },
 ];
 
+const creativeStyles = [
+  { id: "premium", label: "نظيف وفاخر" },
+  { id: "clinical", label: "صحي ونظيف" },
+  { id: "artisticLuxury", label: "فخامة عصرية" },
+  { id: "modernBold", label: "عصري وجريء" },
+  { id: "natureEco", label: "طبيعي وعضوي" },
+  { id: "techSleek", label: "تقني وأنيق" },
+];
+
 function App() {
   const [mode, setMode] = useState("advanced");
   const [language, setLanguage] = useState("");
@@ -35,6 +44,9 @@ function App() {
   const [menOnly, setMenOnly] = useState(true);
   const [forceLanguage, setForceLanguage] = useState(true);
   const [style, setStyle] = useState("default");
+  const [creativeStyle, setCreativeStyle] = useState("premium");
+  const [creativeInputMode, setCreativeInputMode] = useState("advanced");
+  const [mainTab, setMainTab] = useState("landing");
   const [output, setOutput] = useState("");
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
@@ -96,6 +108,99 @@ function App() {
       styleId: style,
       abTest,
     });
+  };
+
+  const buildCreativePrompt = () => {
+    const isFast = creativeInputMode === "fast";
+
+    if (isFast) {
+      if (!productUrl.trim()) return "يرجى ملء رابط صفحة المنتج";
+      if (!fastLanguage.trim()) return "يرجى ملء حقل لغة الجمهور المستهدف";
+      if (!fastPrice.trim()) return "يرجى ملء حقل سعر البيع";
+    } else {
+      if (!language.trim()) return "يرجى ملء حقل لغة الجمهور المستهدف";
+      if (!productName.trim()) return "يرجى ملء حقل الاسم التجاري للمنتج";
+      if (!benefits.trim()) return "يرجى ملء حقل أبرز الفوائد والخصائص";
+      if (!price.trim()) return "يرجى ملء حقل سعر البيع";
+    }
+
+    const targetLang = isFast ? fastLanguage : language;
+    const flow = creativeFlows[creativeStyle] || creativeFlows.premium;
+
+    const creativeHumanConstraint = noHumans
+      ? "8. HUMAN RESTRICTION: Do NOT generate any humans, people, characters, or silhouettes in the image. Use only product imagery, icons, and abstract graphics without people."
+      : menOnly
+      ? "8. HUMAN RESTRICTION: If including humans in the image, ONLY include men. Do NOT generate any women, female figures, or feminine silhouettes."
+      : "";
+
+    const creativeLangForce = forceLanguage
+      ? `\n${creativeHumanConstraint ? "9" : "8"}. LANGUAGE ENFORCEMENT: ALL text displayed in the generated creative MUST be written strictly in ${targetLang}. Absolutely NO text in any other language is allowed. Every headline, label, and caption must be in ${targetLang}.`
+      : "";
+
+    if (isFast) {
+      const creativeSection = flow({ language: fastLanguage, productName: "[product name extracted from the URL]", benefits: "[benefits extracted from the URL]", dimensions: "[dimensions / sizes extracted from the URL]", price: fastPrice, theme: "[color palette extracted from the URL]" });
+      const additional = fastAdditionalInfo.trim() ? `\n- EXTRA CONTEXT FROM USER: ${fastAdditionalInfo.trim()}` : "";
+
+      return `### YOUR TASK INVOLVES TWO MAIN PHASES:
+
+### PHASE 1: PRODUCT INFORMATION EXTRACTION
+Browse and scrape the product page at the following URL:
+${productUrl.trim()}
+
+Extract ALL of the following product details from the page:
+- Product name
+- Offer type (single item or bundle/pack)
+- Main benefits and features / bullet points
+- Product price (user stated price: ${fastPrice})
+- Color scheme, theme, and visual style of the page
+- Product dimensions / sizes if available
+- Any customer reviews, ratings, or testimonials
+- The overall vibe and target audience of the product
+${additional}
+${abTest ? "\nIMPORTANT: After extraction, study TWO different visual angles for this product and generate SEPARATE creative prompts for each. Label clearly as VERSION A and VERSION B." : ""}
+
+### PHASE 2: CREATIVE IMAGE PROMPT
+Using the extracted information from Phase 1, generate ${abTest ? "TWO separate, distinct" : "a single, unified,"} READY-TO-USE creative image prompt${abTest ? "s" : ""} for the image generator.
+CRITICAL LANGUAGE INSTRUCTION: ALL copywriting and text in the creative MUST be strictly written in ${fastLanguage}.
+
+${creativeSection}
+
+### STRICT GUIDELINES:
+1. Aspect Ratio: 9:32 (ultra-tall vertical, mobile-optimized)
+2. Visual Quality: High-resolution, photorealistic, cinematic lighting, 8k, sharp details
+3. Typography: Bold, massive, ultra-readable. ALL localized text must be in ${fastLanguage}.
+4. Hero Focus: The product must be the visual hero throughout the creative
+5. Scene Context: The background and environment MUST be directly related to the product's usage context and natural setting
+6. Text Accuracy: All ${fastLanguage} text must be perfectly spelled, correctly formatted, and culturally appropriate
+${creativeHumanConstraint}${creativeLangForce}`;
+    }
+
+    const creativeSection = flow({ language, productName, benefits, dimensions, price, theme });
+
+    const extraParts = [benefits.trim()];
+    if (dimensions.trim()) extraParts.push(`Dimensions: ${dimensions.trim()}`);
+    if (theme.trim()) extraParts.push(`Color palette: ${theme.trim()}`);
+
+    return `### YOUR TASK:
+Act as a high-end E-commerce Graphic Designer. Create an ultra-tall, mobile-first vertical marketing creative (9:32 aspect ratio) for "${productName.trim()}".
+
+### PRODUCT INFORMATION:
+- Product: ${productName.trim()}
+- Key Benefits / Features: ${extraParts.join(" | ")}
+- Price: ${price.trim()}
+- Target Language: ${language.trim()}
+${abTest ? "\nIMPORTANT: Generate TWO distinct creative versions with different visual and copy approaches. Label as VERSION A and VERSION B." : ""}
+
+${creativeSection}
+
+### STRICT GUIDELINES:
+1. Aspect Ratio: 9:32 (ultra-tall vertical, mobile-optimized)
+2. Visual Quality: High-resolution, photorealistic, cinematic lighting, 8k, sharp details
+3. Typography: Bold, massive, ultra-readable. ALL localized text must be in ${language}.
+4. Hero Focus: "${productName.trim()}" must be the visual hero throughout the creative
+5. Scene Context: The background and environment MUST be directly related to the product's usage context and natural setting
+6. Text Accuracy: All ${language} text must be perfectly spelled, correctly formatted, and culturally appropriate
+${creativeHumanConstraint}${creativeLangForce}`;
   };
 
   const buildFastPrompt = () => {
@@ -345,6 +450,116 @@ ${reviewBlock}
 * MASSIVE BLACK TEXT on BLUE Button: "[اختر الأفضل الآن - ${language}]"`,
   };
 
+  const creativeFlows = {
+    premium: ({ language, productName, benefits, dimensions, price, theme }) => `
+### DESIGN STRATEGY:
+Use a clean, premium aesthetic with a color palette of "Pristine White" and "Deep Royal Blue" to evoke cleanliness and trust. The background should be a blurred, modern minimalist scene related to the product's usage context.
+
+### CREATIVE NARRATIVE:
+* SECTION 1 (The Hook): The product is hero-shot at the top. A bright red ribbon in the corner reads: "حصرياً: لأول مرة هنا"
+* MASSIVE BOLD TEXT in ${language}: "[A hook headline addressing the customer's core need]"
+* Large Subtext in ${language}: "[A persuasive line about the main benefit]"
+
+* SECTION 2 (Visual Proof): 3 circular icons showing:
+  1. Icon representing the top benefit — "${language}"
+  2. Icon representing another key feature — "${language}"
+  3. Icon representing a third advantage — "${language}"
+
+* SECTION 3 (Utility): Lifestyle context showing the product in its practical use environment.
+* Large Text in ${language}: "[Smart storage / utility message]"
+
+* SECTION 4 (Build Quality): Close-up of the product's material quality and construction.
+* Text in ${language}: "[Quality and durability message]"
+
+* SECTION 5 (The Offer & CTA): High-contrast footer section.
+* MASSIVE YELLOW TEXT: "${price} فقط!"
+* Strikethrough Text: "[Original price comparison]"
+* Large White Text: "⚠️ [Urgency/Scarcity message in ${language}]"
+* MASSIVE BLACK TEXT on YELLOW BUTTON: "[Call to action in ${language}]"`,
+
+    clinical: ({ language, productName, benefits, dimensions, price, theme }) => `
+### DESIGN STRATEGY:
+Use a "Clinical Clean" aesthetic with soft mint and white gradients. The background shows a sparkling clean environment relevant to the product with soft sunlight.
+
+### CREATIVE NARRATIVE:
+* SECTION 1: The product displayed with a "Safe/Approved" badge. LARGE BOLD TEXT in ${language}: "[Headline about cleanliness and organization]"
+* SECTION 2: Macro shot of the product's surface/material. Text in ${language}: "[Benefit about resistance, hygiene, or safety]"
+* SECTION 3: Illustration or icon showing a key protective feature. Text in ${language}: "[Message about safety and durability]"
+* SECTION 4: Lifestyle shot showing the product in an organized, clean setting. Text in ${language}: "[Storage and organization message]"
+* FOOTER: Bright Green CTA Button. Text in ${language}: "${price} - [Call to action]"`,
+
+    artisticLuxury: ({ language, productName, benefits, dimensions, price, theme }) => `
+### DESIGN STRATEGY:
+Use a "Minimalist Luxury" aesthetic with warm lighting and soft shadows. Elegant typography with refined details. Background shows an upscale setting related to the product.
+
+### CREATIVE NARRATIVE:
+* SECTION 1: The product displayed against an elegant backdrop. Gold Ribbon: "[Premium tag in ${language}]"
+* SECTION 2: MASSIVE BOLD TEXT in ${language}: "[Headline about luxury and distinction]"
+* SECTION 3: Visual focus on the product's refined design details. Text in ${language}: "[Message about modern elegance]"
+* SECTION 4: "Before vs After" comparison — problem scenario vs transformed setting with the product. Text in ${language}: "[From ordinary to extraordinary]"
+* FOOTER: Gold/Black Elegant CTA. Text in ${language}: "${price} - [Exclusive offer message]"`,
+
+    modernBold: ({ language, productName, benefits, dimensions, price, theme }) => `
+### DESIGN STRATEGY:
+Use a bold, vibrant aesthetic with neon accents and high-contrast colors. Energetic typography with dynamic gradients. Urban-modern background related to the product's use.
+
+### CREATIVE NARRATIVE:
+* SECTION 1: The product bursts from the center with a neon glow. Tag: "[New/Exclusive badge in ${language}]"
+* MASSIVE BOLD COLORED TEXT in ${language}: "[Bold, attention-grabbing headline]"
+* Large Text in ${language}: "[Strong, direct value proposition]"
+
+* SECTION 2: 3 dynamic icons with motion-blur effect:
+  1. "${language}"
+  2. "${language}"
+  3. "${language}"
+
+* SECTION 3: Lifestyle shot in an energetic, modern setting. Text in ${language}: "[Lifestyle aspirational message]"
+
+* SECTION 4: Bold side-by-side comparison. Product vs alternative. Text in ${language}: "[Clear choice message]"
+
+* FOOTER: High-energy CTA with glow effect. Text: "${price} — [Call to action in ${language}]"`,
+
+    natureEco: ({ language, productName, benefits, dimensions, price, theme }) => `
+### DESIGN STRATEGY:
+Use a natural, organic aesthetic with earthy green and warm beige tones. Subtle wood textures and organic shapes. Background shows a nature-inspired environment relevant to the product.
+
+### CREATIVE NARRATIVE:
+* SECTION 1: The product placed in a natural setting with foliage elements. Badge: "[Natural/Eco badge in ${language}]"
+* MASSIVE BOLD GREEN TEXT in ${language}: "[Headline about nature and authenticity]"
+* Large Text in ${language}: "[Message connecting product to nature]"
+
+* SECTION 2: Macro shot highlighting natural/organic materials. Text in ${language}: "[Natural materials message]"
+
+* SECTION 3: 3 nature-themed icons:
+  1. "${language}"
+  2. "${language}"
+  3. "${language}"
+
+* SECTION 4: Lifestyle shot bathed in warm natural light. Text in ${language}: "[Harmony with nature message]"
+
+* FOOTER: Earth-toned CTA button. Text: "${price} — [Call to action in ${language}]"`,
+
+    techSleek: ({ language, productName, benefits, dimensions, price, theme }) => `
+### DESIGN STRATEGY:
+Use a sleek, futuristic aesthetic with dark backgrounds and metallic/silver accents. Clean minimalist typography with subtle glow effects. Background shows a tech-forward environment related to the product.
+
+### CREATIVE NARRATIVE:
+* SECTION 1: The product floats in a digital space with holographic UI elements. Badge: "[Tech badge in ${language}]"
+* MASSIVE BOLD WHITE TEXT ON DARK in ${language}: "[Modern, tech-inspired headline]"
+* Large Text in ${language}: "[Message about innovation and technology]"
+
+* SECTION 2: Technical specs presented with futuristic HUD-style UI elements. Text in ${language}: "[Technical/innovation message]"
+
+* SECTION 3: 3 sleek 3D holographic icons:
+  1. "${language}"
+  2. "${language}"
+  3. "${language}"
+
+* SECTION 4: Split screen — Traditional vs Modern approach. Text in ${language}: "[Forward-looking message]"
+
+* FOOTER: Neon-accented dark CTA. Text: "${price} — [Call to action in ${language}]"`,
+  };
+
   const buildNanoBananaPrompt = ({ language, productRef, dynamicColors, reviewBlock, price, styleId, abTest }) => {
     const flow = designFlows[styleId] || designFlows.default;
     const designFlow = flow({ language, dynamicColors, price, reviewBlock });
@@ -388,7 +603,9 @@ ${designFlow}`;
     setCopied(false);
 
     let result;
-    if (mode === "advanced") {
+    if (mainTab === "creative") {
+      result = buildCreativePrompt();
+    } else if (mode === "advanced") {
       result = buildAdvancedPrompt();
     } else {
       result = buildFastPrompt();
@@ -420,10 +637,17 @@ ${designFlow}`;
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const tabClass = (tab) =>
+  const mainTabClass = (tab) =>
     `flex-1 py-3 px-4 text-center font-semibold rounded-xl transition cursor-pointer ${
-      mode === tab
+      mainTab === tab
         ? "bg-blue-600 text-white shadow-md"
+        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+    }`;
+
+  const subTabClass = (active) =>
+    `flex-1 py-2 px-3 text-sm font-semibold rounded-xl transition cursor-pointer ${
+      active
+        ? "bg-emerald-600 text-white shadow-md"
         : "bg-slate-100 text-slate-600 hover:bg-slate-200"
     }`;
 
@@ -432,26 +656,121 @@ ${designFlow}`;
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-10">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 mb-3 leading-tight">
-            Ecozed landing page promt generator
+            Ecozed Prompt Generator
           </h1>
-          <p className="text-base text-slate-500 mb-1">مولد أوامر التصميم</p>
+          <p className="text-base text-slate-500 mb-1">مولد أوامر التصميم والإعلانات</p>
           <p className="text-lg text-slate-600">
-            قم بتعبئة الحقول أدناه لتوليد أمر تصميم احترافي لـ Nano Banana Pro
+            قم بتعبئة الحقول أدناه لتوليد أمر احترافي
           </p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 md:p-8 space-y-6">
-          {/* Tabs */}
+          {/* Main Tabs */}
           <div className="flex gap-3">
-            <button onClick={() => setMode("advanced")} className={tabClass("advanced")}>
-              الوضع المتقدم
+            <button onClick={() => { setMainTab("landing"); setMode("advanced"); }} className={mainTabClass("landing")}>
+              صفحة هبوط
             </button>
-            <button onClick={() => setMode("fast")} className={tabClass("fast")}>
-              الوضع السريع
+            <button onClick={() => { setMainTab("creative"); setCreativeInputMode("advanced"); }} className={mainTabClass("creative")}>
+              صورة إعلانية
+            </button>
+            <button onClick={() => setMainTab("video")} className={mainTabClass("video")}>
+              فيديو إعلاني
             </button>
           </div>
 
-          {mode === "advanced" ? (
+          {mainTab === "landing" && (
+            <div className="flex gap-2">
+              <button onClick={() => setMode("advanced")} className={subTabClass(mode === "advanced")}>
+                وضع متقدم
+              </button>
+              <button onClick={() => setMode("fast")} className={subTabClass(mode === "fast")}>
+                وضع سريع
+              </button>
+            </div>
+          )}
+
+          {mainTab === "creative" && (
+            <div className="flex gap-2">
+              <button onClick={() => setCreativeInputMode("advanced")} className={subTabClass(creativeInputMode === "advanced")}>
+                إدخال يدوي
+              </button>
+              <button onClick={() => setCreativeInputMode("fast")} className={subTabClass(creativeInputMode === "fast")}>
+                رابط منتج
+              </button>
+            </div>
+          )}
+
+          {mainTab === "video" ? (
+            <div className="text-center py-20 text-slate-400">
+              <svg className="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              <p className="text-2xl font-bold mb-2">قريباً</p>
+              <p className="text-base">توليد فيديوهات إعلانية احترافية قيد التطوير</p>
+            </div>
+          ) : (mainTab === "landing" && mode === "fast") || (mainTab === "creative" && creativeInputMode === "fast") ? (
+            <>
+              {/* Fast Mode - URL */}
+              <div>
+                <h3 className="text-lg font-semibold text-slate-800 mb-2">
+                  1. رابط صفحة المنتج <span className="text-red-500">*</span>
+                </h3>
+                <input
+                  type="url"
+                  value={productUrl}
+                  onChange={(e) => setProductUrl(e.target.value)}
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                  placeholder="https://example.com/product-page"
+                />
+                <p className="text-xs text-slate-400 mt-1.5">
+                  سيتم توجيه الذكاء الاصطناعي لتصفح الرابط واستخراج معلومات المنتج تلقائياً
+                </p>
+              </div>
+
+              {/* Fast Mode - Language */}
+              <div>
+                <h3 className="text-lg font-semibold text-slate-800 mb-2">
+                  2. لغة الجمهور المستهدف <span className="text-red-500">*</span>
+                </h3>
+                <input
+                  type="text"
+                  value={fastLanguage}
+                  onChange={(e) => setFastLanguage(e.target.value)}
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                  placeholder="مثال: العربية، الدارجة الجزائرية، الإنجليزية..."
+                />
+              </div>
+
+              {/* Fast Mode - Price */}
+              <div>
+                <h3 className="text-lg font-semibold text-slate-800 mb-2">
+                  3. سعر البيع <span className="text-red-500">*</span>
+                </h3>
+                <input
+                  type="text"
+                  value={fastPrice}
+                  onChange={(e) => setFastPrice(e.target.value)}
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                  placeholder="مثال: 200 دينار / 50 دولار"
+                />
+              </div>
+
+              {/* Fast Mode - Additional Info */}
+              <div>
+                <h3 className="text-lg font-semibold text-slate-800 mb-2">
+                  4. معلومات إضافية{" "}
+                  <span className="text-slate-400 text-xs">(اختياري)</span>
+                </h3>
+                <textarea
+                  value={fastAdditionalInfo}
+                  onChange={(e) => setFastAdditionalInfo(e.target.value)}
+                  rows={3}
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-y"
+                  placeholder="أي معلومات إضافية تريد تزويد الذكاء الاصطناعي بها عن المنتج..."
+                />
+              </div>
+            </>
+          ) : (
             <>
               {/* Language */}
               <div>
@@ -602,169 +921,110 @@ ${designFlow}`;
                 </button>
               </div>
             </>
-          ) : (
-            <>
-              {/* Fast Mode - URL */}
-              <div>
-                <h3 className="text-lg font-semibold text-slate-800 mb-2">
-                  1. رابط صفحة المنتج <span className="text-red-500">*</span>
-                </h3>
-                <input
-                  type="url"
-                  value={productUrl}
-                  onChange={(e) => setProductUrl(e.target.value)}
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                  placeholder="https://example.com/product-page"
-                />
-                <p className="text-xs text-slate-400 mt-1.5">
-                  سيتم توجيه الذكاء الاصطناعي لتصفح الرابط واستخراج معلومات المنتج تلقائياً
-                </p>
-              </div>
-
-              {/* Fast Mode - Language */}
-              <div>
-                <h3 className="text-lg font-semibold text-slate-800 mb-2">
-                  2. لغة الجمهور المستهدف <span className="text-red-500">*</span>
-                </h3>
-                <input
-                  type="text"
-                  value={fastLanguage}
-                  onChange={(e) => setFastLanguage(e.target.value)}
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                  placeholder="مثال: العربية، الدارجة الجزائرية، الإنجليزية..."
-                />
-              </div>
-
-              {/* Fast Mode - Price */}
-              <div>
-                <h3 className="text-lg font-semibold text-slate-800 mb-2">
-                  3. سعر البيع <span className="text-red-500">*</span>
-                </h3>
-                <input
-                  type="text"
-                  value={fastPrice}
-                  onChange={(e) => setFastPrice(e.target.value)}
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                  placeholder="مثال: 200 دينار / 50 دولار"
-                />
-              </div>
-
-              {/* Fast Mode - Additional Info */}
-              <div>
-                <h3 className="text-lg font-semibold text-slate-800 mb-2">
-                  4. معلومات إضافية{" "}
-                  <span className="text-slate-400 text-xs">(اختياري)</span>
-                </h3>
-                <textarea
-                  value={fastAdditionalInfo}
-                  onChange={(e) => setFastAdditionalInfo(e.target.value)}
-                  rows={3}
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-y"
-                  placeholder="أي معلومات إضافية تريد تزويد الذكاء الاصطناعي بها عن المنتج..."
-                />
-              </div>
-            </>
           )}
 
-          {/* A/B Test Checkbox */}
-          <label className="flex items-center gap-3 cursor-pointer select-none">
-            <div
-              onClick={() => setAbTest(!abTest)}
-              className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition cursor-pointer ${
-                abTest
-                  ? "bg-blue-600 border-blue-600"
-                  : "border-slate-300 bg-white"
-              }`}
-            >
-              {abTest && (
-                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                </svg>
-              )}
-            </div>
-            <span className="text-sm font-medium text-slate-700">
-              اختبار A/B — توليد أمرين بتوجهين تسويقيين مختلفين
-            </span>
-          </label>
+          {mainTab !== "video" && (
+            <>
+            {/* A/B Test Checkbox */}
+            <label className="flex items-center gap-3 cursor-pointer select-none">
+              <div
+                onClick={() => setAbTest(!abTest)}
+                className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition cursor-pointer ${
+                  abTest
+                    ? "bg-blue-600 border-blue-600"
+                    : "border-slate-300 bg-white"
+                }`}
+              >
+                {abTest && (
+                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </div>
+              <span className="text-sm font-medium text-slate-700">
+                اختبار A/B — توليد أمرين بتوجهين تسويقيين مختلفين
+              </span>
+            </label>
 
-          {/* No Humans Checkbox */}
-          <label className="flex items-center gap-3 cursor-pointer select-none">
-            <div
-              onClick={() => {
-                setNoHumans(!noHumans);
-                if (!noHumans) setMenOnly(false);
-              }}
-              className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition cursor-pointer ${
-                noHumans
-                  ? "bg-blue-600 border-blue-600"
-                  : "border-slate-300 bg-white"
-              }`}
-            >
-              {noHumans && (
-                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                </svg>
-              )}
-            </div>
-            <span className="text-sm font-medium text-slate-700">
-              لا تولد بشر — منع ظهور أي أشخاص في التصميم
-            </span>
-          </label>
+            {/* No Humans Checkbox */}
+            <label className="flex items-center gap-3 cursor-pointer select-none">
+              <div
+                onClick={() => {
+                  setNoHumans(!noHumans);
+                  if (!noHumans) setMenOnly(false);
+                }}
+                className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition cursor-pointer ${
+                  noHumans
+                    ? "bg-blue-600 border-blue-600"
+                    : "border-slate-300 bg-white"
+                }`}
+              >
+                {noHumans && (
+                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </div>
+              <span className="text-sm font-medium text-slate-700">
+                لا تولد بشر — منع ظهور أي أشخاص في التصميم
+              </span>
+            </label>
 
-          {/* Men Only Checkbox */}
-          <label className={`flex items-center gap-3 cursor-pointer select-none ${noHumans ? "opacity-40 pointer-events-none" : ""}`}>
-            <div
-              onClick={() => !noHumans && setMenOnly(!menOnly)}
-              className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition cursor-pointer ${
-                menOnly && !noHumans
-                  ? "bg-blue-600 border-blue-600"
-                  : "border-slate-300 bg-white"
-              }`}
-            >
-              {menOnly && !noHumans && (
-                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                </svg>
-              )}
-            </div>
-            <span className="text-sm font-medium text-slate-700">
-              رجال فقط — توليد رجال فقط دون نساء
-            </span>
-          </label>
+            {/* Men Only Checkbox */}
+            <label className={`flex items-center gap-3 cursor-pointer select-none ${noHumans ? "opacity-40 pointer-events-none" : ""}`}>
+              <div
+                onClick={() => !noHumans && setMenOnly(!menOnly)}
+                className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition cursor-pointer ${
+                  menOnly && !noHumans
+                    ? "bg-blue-600 border-blue-600"
+                    : "border-slate-300 bg-white"
+                }`}
+              >
+                {menOnly && !noHumans && (
+                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </div>
+              <span className="text-sm font-medium text-slate-700">
+                رجال فقط — توليد رجال فقط دون نساء
+              </span>
+            </label>
 
-          {/* Force Language Checkbox */}
-          <label className="flex items-center gap-3 cursor-pointer select-none">
-            <div
-              onClick={() => setForceLanguage(!forceLanguage)}
-              className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition cursor-pointer ${
-                forceLanguage
-                  ? "bg-blue-600 border-blue-600"
-                  : "border-slate-300 bg-white"
-              }`}
-            >
-              {forceLanguage && (
-                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                </svg>
-              )}
-            </div>
-            <span className="text-sm font-medium text-slate-700">
-              فرض اللغة — التأكد من أن كل النصوص في التصميم بلغة الجمهور المستهدف
-            </span>
-          </label>
+            {/* Force Language Checkbox */}
+            <label className="flex items-center gap-3 cursor-pointer select-none">
+              <div
+                onClick={() => setForceLanguage(!forceLanguage)}
+                className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition cursor-pointer ${
+                  forceLanguage
+                    ? "bg-blue-600 border-blue-600"
+                    : "border-slate-300 bg-white"
+                }`}
+              >
+                {forceLanguage && (
+                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </div>
+              <span className="text-sm font-medium text-slate-700">
+                فرض اللغة — التأكد من أن كل النصوص في التصميم بلغة الجمهور المستهدف
+              </span>
+            </label>
+            </>)}
 
-          {/* Style Selector */}
+          {mainTab !== "video" && (
           <div>
             <h3 className="text-lg font-semibold text-slate-800 mb-2">
-              نمط أمر التصميم
+              {mainTab === "creative" ? "نمط الصورة الإعلانية" : "نمط أمر التصميم"}
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {promptStyles.map((s) => (
+              {(mainTab === "creative" ? creativeStyles : promptStyles).map((s) => (
                 <button
                   key={s.id}
-                  onClick={() => setStyle(s.id)}
+                  onClick={() => (mainTab === "creative" ? setCreativeStyle : setStyle)(s.id)}
                   className={`py-2.5 px-3 rounded-xl text-sm font-medium transition cursor-pointer ${
-                    style === s.id
+                    (mainTab === "creative" ? creativeStyle : style) === s.id
                       ? "bg-blue-600 text-white shadow-md"
                       : "bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200"
                   }`}
@@ -774,21 +1034,24 @@ ${designFlow}`;
               ))}
             </div>
           </div>
+          )}
 
           {/* Error */}
-          {error && (
+          {error && mainTab !== "video" && (
             <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-5 py-3 text-center font-medium">
               {error}
             </div>
           )}
 
           {/* Generate */}
+          {mainTab !== "video" && (
           <button
             onClick={generatePrompt}
             className="w-full bg-gradient-to-l from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold text-lg py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all active:scale-[0.98] cursor-pointer"
           >
-            {mode === "advanced" ? "إنشاء أمر التصميم" : "إنشاء الأمر السريع"}
+            {mainTab === "creative" ? "إنشاء الصورة الإعلانية" : mode === "advanced" ? "إنشاء أمر التصميم" : "إنشاء الأمر السريع"}
           </button>
+          )}
         </div>
 
         {/* Output */}
@@ -796,7 +1059,7 @@ ${designFlow}`;
           <div ref={outputRef} className="mt-8 bg-white rounded-2xl shadow-xl border border-slate-200 p-6 md:p-8">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
               <h2 className="text-lg sm:text-xl font-bold text-slate-800">
-                أمر التصميم المُنتَج
+                {mainTab === "creative" ? "الصورة الإعلانية المُنتَجة" : "أمر التصميم المُنتَج"}
               </h2>
               <button
                 onClick={copyToClipboard}
