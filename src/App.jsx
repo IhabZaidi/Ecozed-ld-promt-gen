@@ -17,12 +17,12 @@ const promptStyles = [
 ];
 
 const creativeStyles = [
-  { id: "premium", label: "نظيف وفاخر" },
-  { id: "clinical", label: "صحي ونظيف" },
-  { id: "artisticLuxury", label: "فخامة عصرية" },
-  { id: "modernBold", label: "عصري وجريء" },
-  { id: "natureEco", label: "طبيعي وعضوي" },
-  { id: "techSleek", label: "تقني وأنيق" },
+  { id: "default", label: "افتراضي" },
+  { id: "clinical", label: "صحي" },
+  { id: "artisticLuxury", label: "فخم" },
+  { id: "modernBold", label: "جريء" },
+  { id: "natureEco", label: "طبيعي" },
+  { id: "techSleek", label: "تقني" },
 ];
 
 function App() {
@@ -44,7 +44,7 @@ function App() {
   const [menOnly, setMenOnly] = useState(true);
   const [forceLanguage, setForceLanguage] = useState(true);
   const [style, setStyle] = useState("default");
-  const [creativeStyle, setCreativeStyle] = useState("premium");
+  const [creativeStyle, setCreativeStyle] = useState("default");
   const [creativeInputMode, setCreativeInputMode] = useState("advanced");
   const [mainTab, setMainTab] = useState("landing");
   const [output, setOutput] = useState("");
@@ -125,7 +125,7 @@ function App() {
     }
 
     const targetLang = isFast ? fastLanguage : language;
-    const flow = creativeFlows[creativeStyle] || creativeFlows.premium;
+    const flow = creativeFlows[creativeStyle] || creativeFlows.default;
 
     const creativeHumanConstraint = noHumans
       ? "8. HUMAN RESTRICTION: Do NOT generate any humans, people, characters, or silhouettes in the image. Use only product imagery, icons, and abstract graphics without people."
@@ -142,6 +142,8 @@ function App() {
       const additional = fastAdditionalInfo.trim() ? `\n- EXTRA CONTEXT FROM USER: ${fastAdditionalInfo.trim()}` : "";
 
       return `### YOUR TASK INVOLVES TWO MAIN PHASES:
+
+### Dont generate image, just do the task
 
 ### PHASE 1: PRODUCT INFORMATION EXTRACTION
 Browse and scrape the product page at the following URL:
@@ -166,7 +168,7 @@ CRITICAL LANGUAGE INSTRUCTION: ALL copywriting and text in the creative MUST be 
 ${creativeSection}
 
 ### STRICT GUIDELINES:
-1. Aspect Ratio: 9:32 (ultra-tall vertical, mobile-optimized)
+1. Aspect Ratio: 1:1 (square format, ideal for social media and ads)
 2. Visual Quality: High-resolution, photorealistic, cinematic lighting, 8k, sharp details
 3. Typography: Bold, massive, ultra-readable. ALL localized text must be in ${fastLanguage}.
 4. Hero Focus: The product must be the visual hero throughout the creative
@@ -185,7 +187,10 @@ IMPORTANT: Make sure ALL text throughout the creative is written strictly in ${t
     if (theme.trim()) extraParts.push(`Color palette: ${theme.trim()}`);
 
     return `### YOUR TASK:
-Act as a high-end E-commerce Graphic Designer. Create an ultra-tall, mobile-first vertical marketing creative (9:32 aspect ratio) for "${productName.trim()}".
+
+### Dont generate image, just do the task
+
+Act as a high-end E-commerce Graphic Designer. Create an square format marketing creative (1:1 aspect ratio) for "${productName.trim()}".
 
 ### PRODUCT INFORMATION:
 - Product: ${productName.trim()}
@@ -197,7 +202,7 @@ ${abTest ? "\nIMPORTANT: Generate TWO distinct creative versions with different 
 ${creativeSection}
 
 ### STRICT GUIDELINES:
-1. Aspect Ratio: 9:32 (ultra-tall vertical, mobile-optimized)
+1. Aspect Ratio: 1:1 (square format, ideal for social media and ads)
 2. Visual Quality: High-resolution, photorealistic, cinematic lighting, 8k, sharp details
 3. Typography: Bold, massive, ultra-readable. ALL localized text must be in ${language}.
 4. Hero Focus: "${productName.trim()}" must be the visual hero throughout the creative
@@ -460,7 +465,7 @@ ${reviewBlock}
   };
 
   const creativeFlows = {
-    premium: ({ language, productName, benefits, dimensions, price, theme }) => `
+    default: ({ language, productName, benefits, dimensions, price, theme }) => `
 ### DESIGN STRATEGY:
 Use a clean, premium aesthetic with a color palette of "Pristine White" and "Deep Royal Blue" to evoke cleanliness and trust. The background should be a blurred, modern minimalist scene related to the product's usage context.
 
