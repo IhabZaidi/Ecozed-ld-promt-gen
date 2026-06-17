@@ -172,7 +172,10 @@ ${creativeSection}
 4. Hero Focus: The product must be the visual hero throughout the creative
 5. Scene Context: The background and environment MUST be directly related to the product's usage context and natural setting
 6. Text Accuracy: All ${fastLanguage} text must be perfectly spelled, correctly formatted, and culturally appropriate
-${creativeHumanConstraint}${creativeLangForce}`;
+${creativeHumanConstraint}${creativeLangForce}
+
+### FINAL LANGUAGE CHECK:
+IMPORTANT: Make sure ALL text throughout the creative is written strictly in ${targetLang}. Please double-check every headline, label, and caption — they must all be in ${targetLang}. No text in any other language is permitted.`;
     }
 
     const creativeSection = flow({ language, productName, benefits, dimensions, price, theme });
@@ -200,7 +203,10 @@ ${creativeSection}
 4. Hero Focus: "${productName.trim()}" must be the visual hero throughout the creative
 5. Scene Context: The background and environment MUST be directly related to the product's usage context and natural setting
 6. Text Accuracy: All ${language} text must be perfectly spelled, correctly formatted, and culturally appropriate
-${creativeHumanConstraint}${creativeLangForce}`;
+${creativeHumanConstraint}${creativeLangForce}
+
+### FINAL LANGUAGE CHECK:
+IMPORTANT: Make sure ALL text throughout the creative is written strictly in ${targetLang}. Please double-check every headline, label, and caption — they must all be in ${targetLang}. No text in any other language is permitted.`;
   };
 
   const buildFastPrompt = () => {
@@ -253,7 +259,10 @@ CRITICAL RULE: DO NOT write HTML/CSS. Generate a purely visual, seamless graphic
 
 DESIGN & FLOW INSTRUCTIONS:
 Build a continuous visual narrative utilizing smooth gradients (specifically [use colors extracted from the product page]) and sleek kinetic lines. Avoid harsh dividers. Use a dynamic background that fits the product vibe extracted from the page. Showcase the product frequently.
-${designFlow}`;
+${designFlow}
+
+### FINAL LANGUAGE CHECK:
+IMPORTANT: Make sure ALL text throughout the design is written strictly in ${fastLanguage}. Please double-check every headline, label, button, and caption — they must all be in ${fastLanguage}. No text in any other language is permitted.`;
   };
 
   const designFlows = {
@@ -595,7 +604,10 @@ CRITICAL RULE: DO NOT write HTML/CSS. Generate a purely visual, seamless graphic
 
 DESIGN & FLOW INSTRUCTIONS:
 Build a continuous visual narrative utilizing smooth gradients (specifically ${dynamicColors}) and sleek kinetic lines. Avoid harsh dividers. Use a dynamic background that fits the [product vibe]. Showcase the product frequently.
-${designFlow}`;
+${designFlow}
+
+### FINAL LANGUAGE CHECK:
+IMPORTANT: Make sure ALL text throughout the design is written strictly in ${language}. Please double-check every headline, label, button, and caption — they must all be in ${language}. No text in any other language is permitted.`;
   };
 
   const generatePrompt = () => {
