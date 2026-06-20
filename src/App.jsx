@@ -1218,7 +1218,7 @@ IMPORTANT: Make sure ALL text throughout the design is written strictly in ${lan
             </>)}
 
           {/* Error */}
-          {error && mainTab !== "video" && (
+          {error && mainTab !== "video" && mainTab !== "voiceover" && (
             <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-5 py-3 text-center font-medium">
               {error}
             </div>
