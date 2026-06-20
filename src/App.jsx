@@ -1,4 +1,26 @@
 import { useState, useRef } from "react";
+import avatarMd from "./assets/avatar.md?raw";
+import adsMd from "./assets/ads.md?raw";
+import adCreativeMd from "./assets/ad-creative.md?raw";
+import imageMd from "./assets/image.md?raw";
+
+const parseFrontmatter = (raw) => {
+  const match = raw.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+  if (!match) return { name: "", description: "", content: raw };
+  const meta = {};
+  const nameMatch = match[1].match(/^name:\s*(.+)$/m);
+  const descMatch = match[1].match(/^description:\s*"(.+)"$/m);
+  if (nameMatch) meta.name = nameMatch[1];
+  if (descMatch) meta.description = descMatch[1];
+  return { name: meta.name || "", description: meta.description || "", content: raw };
+};
+
+const preprompts = [
+  { id: "avatar", ...parseFrontmatter(avatarMd) },
+  { id: "image", ...parseFrontmatter(imageMd) },
+  { id: "ads", ...parseFrontmatter(adsMd) },
+  { id: "ad-creative", ...parseFrontmatter(adCreativeMd) },
+];
 
 const genders = [
   { value: "man", label: "رجل" },
@@ -43,6 +65,10 @@ function App() {
   const [noHumans, setNoHumans] = useState(true);
   const [menOnly, setMenOnly] = useState(true);
   const [forceLanguage, setForceLanguage] = useState(true);
+  const [adCopy, setAdCopy] = useState(true);
+  const [sellMethod, setSellMethod] = useState("messages");
+  const [limitedQt, setLimitedQt] = useState(false);
+  const [firstTimeDz, setFirstTimeDz] = useState(false);
   const [style, setStyle] = useState("default");
   const [creativeStyle, setCreativeStyle] = useState("default");
   const [creativeInputMode, setCreativeInputMode] = useState("advanced");
@@ -50,6 +76,7 @@ function App() {
   const [output, setOutput] = useState("");
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [copiedPre, setCopiedPre] = useState(null);
   const outputRef = useRef(null);
 
   const humanConstraint = () => {
@@ -61,6 +88,28 @@ function App() {
   const langForce = (language) => {
     if (!forceLanguage) return "";
     return `\n${humanConstraint() ? "9" : "8"}. LANGUAGE ENFORCEMENT: ALL text displayed in the design MUST be written strictly in ${language}. Absolutely NO text in any other language is allowed. Every headline, label, button, and caption must be in ${language}.`;
+  };
+
+  const buyerPersonaBlock = () => `\n### 👤 BUYER PERSONA PROFILE — CRITICAL: THIS DRIVES EVERYTHING\nBased on the product information, first define a detailed buyer persona for the target customer. Include:\n- Demographics (age, gender, location, income level)\n- Psychographics (interests, values, lifestyle)\n- Pain points and specific needs this product solves\n- Shopping behavior and purchase motivations\n\n**CRITICAL RULE:** This persona is the north star for EVERYTHING. The image creative MUST visually represent this persona's world, lifestyle, and context. The ad copy MUST speak DIRECTLY to THIS specific persona — use their language, their specific pain points, their desires. Every line of copy must feel like it was written FOR this exact person. Do NOT write generic copy that could apply to anyone.`;
+
+  const sellingCta = () => {
+    if (sellMethod === "website") return `\n### CALL TO ACTION\nUse: "اطلب الآن عبر الموقع" as the final CTA. Drive users to order through the website.`;
+    return `\n### CALL TO ACTION\nUse: "للطلب راسلنا الآن" as the final CTA. Drive users to send a message to place an order.`;
+  };
+
+  const urgencyBlock = () => limitedQt ? `\n### URGENCY & SCARCITY\nIncorporate limited-quantity messaging: "الكمية محدودة جدا — اغتنم الفرصة الآن". Create a sense of urgency and fear of missing out (FOMO).` : `\n### URGENCY & SCARCITY\nDo NOT use any urgency or limited-quantity messaging. No "الكمية محدودة", no "لفترة محدودة", no scarcity tactics.`;
+
+  const exclusivityBlock = () => firstTimeDz ? `\n### EXCLUSIVITY\nHighlight that this product is available "لأول مرة في الجزائر" — make it feel like a unique opportunity, exclusive launch, or first-of-its-kind offer in the Algerian market.` : `\n### EXCLUSIVITY\nDo NOT use any exclusivity messaging. No "لأول مرة", no "حصري", no "فريد".`;
+
+  const marketingHooksBlock = (lang) => {
+    const urgency = limitedQt ? `\n\n### URGENCY\nInclude "الكمية محدودة جدا" in the copy to create scarcity and drive immediate action.` : `\n\n### URGENCY\nDo NOT include any urgency or scarcity messaging. No "الكمية محدودة", no "لفترة محدودة".`;
+    const exclusivity = firstTimeDz ? `\n\n### EXCLUSIVITY\nInclude "لأول مرة في الجزائر" to position this as a unique, first-of-its-kind offer.` : `\n\n### EXCLUSIVITY\nDo NOT include any exclusivity messaging. No "لأول مرة", no "حصري".`;
+    return `${urgency}${exclusivity}`;
+  };
+
+  const adCopyBlock = (lang) => {
+    if (!adCopy) return "";
+    return `\n### 📝 AD COPY GENERATION — MUST TARGET THE BUYER PERSONA DIRECTLY\nIn addition to the image prompt above, produce ${abTest ? "TWO (one per version) short ready-to-use advertising copies" : "a short ready-to-use advertising copy"} written EXCLUSIVELY for the specific buyer persona defined earlier. The text must be balanced in length — not too long and not too short — and follow this exact structure:\n1. **Hook** — An attention-grabbing opening line that speaks DIRECTLY to the persona${firstTimeDz ? `\n   - Consider using the exclusivity angle: "لأول مرة في الجزائر" as part of the hook.` : ""}${limitedQt ? `\n   - Consider incorporating scarcity: "الكمية محدودة جدا" in the hook or CTA.` : ""}\n2. **Pain** — The specific problem this persona faces (use THEIR language, not generic terms)\n3. **Solution** — How the product solves it\n4. **CTA** — A clear call to action\nThe ad copy must be written in ${lang}, match the visual prompt's tone and angle.\n\n**CRITICAL — PERSONA TARGETING RULE:** The copy MUST address the persona directly using their specific context. For example, if the persona is "mothers aged 28-45 managing a household", the hook should reference motherhood/home responsibilities — NOT generic "you". Every line must feel like it was written FOR this exact person, using their language and addressing their unique situation.\n${sellMethod === "website" ? `\n### 📍 CTA DIRECTION\nThe call to action should direct users to order through the website: "اطلب الآن عبر الموقع".` : `\n### 📍 CTA DIRECTION\nThe call to action should direct users to send a message: "للطلب راسلنا الآن".`}\n${abTest ? "Generate TWO distinct ad copies (VERSION A and VERSION B), each matching its respective visual version's tone and targeting the same buyer persona from different angles." : ""}${urgencyBlock()}${exclusivityBlock()}`;
   };
 
   const updateReview = (index, field, value) => {
@@ -174,7 +223,7 @@ ${creativeSection}
 4. Hero Focus: The product must be the visual hero throughout the creative
 5. Scene Context: The background and environment MUST be directly related to the product's usage context and natural setting
 6. Text Accuracy: All ${fastLanguage} text must be perfectly spelled, correctly formatted, and culturally appropriate
-${creativeHumanConstraint}${creativeLangForce}
+${creativeHumanConstraint}${creativeLangForce}${buyerPersonaBlock()}${adCopyBlock(targetLang)}
 
 ### FINAL LANGUAGE CHECK:
 IMPORTANT: Make sure ALL text throughout the creative is written strictly in ${targetLang}. Please double-check every headline, label, and caption — they must all be in ${targetLang}. No text in any other language is permitted.`;
@@ -208,7 +257,7 @@ ${creativeSection}
 4. Hero Focus: "${productName.trim()}" must be the visual hero throughout the creative
 5. Scene Context: The background and environment MUST be directly related to the product's usage context and natural setting
 6. Text Accuracy: All ${language} text must be perfectly spelled, correctly formatted, and culturally appropriate
-${creativeHumanConstraint}${creativeLangForce}
+${creativeHumanConstraint}${creativeLangForce}${buyerPersonaBlock()}${adCopyBlock(language)}
 
 ### FINAL LANGUAGE CHECK:
 IMPORTANT: Make sure ALL text throughout the creative is written strictly in ${targetLang}. Please double-check every headline, label, and caption — they must all be in ${targetLang}. No text in any other language is permitted.`;
@@ -243,6 +292,7 @@ ${abTest ? "\nIMPORTANT: After extraction, study TWO different marketing angles 
 ### PHASE 2: PERSUASIVE COPYWRITING
 Using the extracted information from Phase 1, craft compelling sales copy for this product using the structure outlined below. Provide this text clearly so I can review and utilize it.
 CRITICAL LANGUAGE INSTRUCTION: ALL copywriting in Phase 2 MUST be strictly written in ${fastLanguage}.
+${marketingHooksBlock(fastLanguage)}
 
 ### PHASE 3: NANO BANANA PRO DESIGN PROMPT
 After writing the copy, generate ${abTest ? "TWO separate, distinct" : "a single, unified,"} READY-TO-USE design prompt${abTest ? "s" : ""} for the image generator.${abTest ? "\nEach prompt must follow a different marketing angle (e.g. one emotional, one logical/feature-focused). Enclose each prompt in its own code block and label clearly as VERSION A - [angle] and VERSION B - [angle]." : ""}
@@ -256,7 +306,7 @@ After writing the copy, generate ${abTest ? "TWO separate, distinct" : "a single
 5. Typography: ALL localized text MUST be displayed in massive, ultra-bold typography (20px minimum equivalent). ONLY output the generated ${fastLanguage} text inside quotation marks " ". DO NOT output English structural labels like (Headline, Body).
 6. Final Cleanup: Replace all [bracketed placeholders] with your generated ${fastLanguage} text and strip out all structural labels.
 7. Text Direction: Ensure the layout logic fits the requested language.
-${humanConstraint()}${langForce(fastLanguage)}
+${humanConstraint()}${langForce(fastLanguage)}${buyerPersonaBlock()}
 
 --- DESIGN PROMPT TEMPLATE ---
 Act as an expert E-commerce UI/UX Designer. Create an ultra-tall vertical infographic landing page IMAGE (aspect ratio 9:32 or longer) featuring the extracted product/bundle from the provided URL.
@@ -588,6 +638,7 @@ A/B TEST INSTRUCTION: Study the product and identify two distinct marketing angl
 ### PHASE 1: PERSUASIVE COPYWRITING
 First, craft compelling sales copy for this product using the structure outlined below. Provide this text clearly so I can review and utilize it.
 CRITICAL LANGUAGE INSTRUCTION: ALL copywriting in Phase 1 MUST be strictly written in ${language}.
+${marketingHooksBlock(language)}
 
 ### PHASE 2: NANO BANANA PRO DESIGN PROMPT${abTest ? "S (A/B TEST)" : ""}
 ${phase2}
@@ -601,7 +652,7 @@ ${phase2}
 5. Typography: ALL localized text MUST be displayed in massive, ultra-bold typography (20px minimum equivalent). ONLY output the generated ${language} text inside quotation marks " ". DO NOT output English structural labels like (Headline, Body).
 6. Final Cleanup: Replace all [bracketed placeholders] with your generated ${language} text and strip out all structural labels.
 7. Text Direction: Ensure the layout logic fits the requested language.
-${humanConstraint()}${langForce(language)}
+${humanConstraint()}${langForce(language)}${buyerPersonaBlock()}
 
 --- DESIGN PROMPT TEMPLATE ---
 Act as an expert E-commerce UI/UX Designer. Create an ultra-tall vertical infographic landing page IMAGE (aspect ratio 9:32 or longer) featuring the ${productRef} from the uploaded image.
@@ -654,6 +705,7 @@ IMPORTANT: Make sure ALL text throughout the design is written strictly in ${lan
     setTimeout(() => setCopied(false), 2000);
   };
 
+
   const mainTabClass = (tab) =>
     `flex-1 py-3 px-4 text-center font-semibold rounded-xl transition cursor-pointer ${
       mainTab === tab
@@ -675,9 +727,9 @@ IMPORTANT: Make sure ALL text throughout the design is written strictly in ${lan
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 mb-3 leading-tight">
             Ecozed Prompt Generator
           </h1>
-          <p className="text-base text-slate-500 mb-1">مولد أوامر التصميم والإعلانات</p>
+          <p className="text-base text-slate-500 mb-1">❤️ دعوة في ظهر الغيب تكفي</p>
           <p className="text-lg text-slate-600">
-            قم بتعبئة الحقول أدناه لتوليد أمر احترافي
+            جعل الإعلانات واختبار المنتجات أكثر سهولة
           </p>
         </div>
 
@@ -695,23 +747,18 @@ IMPORTANT: Make sure ALL text throughout the design is written strictly in ${lan
             </button>
           </div>
 
-          {mainTab === "landing" && (
+          {(mainTab === "landing" || mainTab === "creative") && (
             <div className="flex gap-2">
-              <button onClick={() => setMode("advanced")} className={subTabClass(mode === "advanced")}>
-                وضع متقدم
-              </button>
-              <button onClick={() => setMode("fast")} className={subTabClass(mode === "fast")}>
-                وضع سريع
-              </button>
-            </div>
-          )}
-
-          {mainTab === "creative" && (
-            <div className="flex gap-2">
-              <button onClick={() => setCreativeInputMode("advanced")} className={subTabClass(creativeInputMode === "advanced")}>
+              <button
+                onClick={() => mainTab === "landing" ? setMode("advanced") : setCreativeInputMode("advanced")}
+                className={subTabClass(mainTab === "landing" ? mode === "advanced" : creativeInputMode === "advanced")}
+              >
                 إدخال يدوي
               </button>
-              <button onClick={() => setCreativeInputMode("fast")} className={subTabClass(creativeInputMode === "fast")}>
+              <button
+                onClick={() => mainTab === "landing" ? setMode("fast") : setCreativeInputMode("fast")}
+                className={subTabClass(mainTab === "landing" ? mode === "fast" : creativeInputMode === "fast")}
+              >
                 رابط منتج
               </button>
             </div>
@@ -1028,9 +1075,111 @@ IMPORTANT: Make sure ALL text throughout the design is written strictly in ${lan
                 فرض اللغة — التأكد من أن كل النصوص في التصميم بلغة الجمهور المستهدف
               </span>
             </label>
-            </>)}
 
-          {mainTab !== "video" && (
+            {/* Use Buyer Avatar — always on */}
+            <label className="flex items-center gap-3 select-none opacity-60 cursor-not-allowed">
+              <div className="w-6 h-6 rounded-md border-2 flex items-center justify-center bg-blue-600 border-blue-600">
+                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <span className="text-sm font-medium text-slate-500">
+                استخدام شخصية المشتري — إنشاء ملف تعريف لشخصية المشتري المستهدف لتوجيه التصميم
+              </span>
+            </label>
+
+            {/* Ad Copy Checkbox — image creative only */}
+            {mainTab === "creative" && (
+            <label className="flex items-center gap-3 cursor-pointer select-none">
+              <div
+                onClick={() => setAdCopy(!adCopy)}
+                className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition cursor-pointer ${
+                  adCopy
+                    ? "bg-blue-600 border-blue-600"
+                    : "border-slate-300 bg-white"
+                }`}
+              >
+                {adCopy && (
+                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </div>
+              <span className="text-sm font-medium text-slate-700">
+                توليد نص الإعلان — إنشاء نص تسويقي قصير (Hook → Pain → Solution → CTA)
+              </span>
+            </label>
+            )}
+
+            {/* Sell Method — image creative only */}
+            {mainTab === "creative" && (
+            <div>
+              <h3 className="text-sm font-semibold text-slate-800 mb-2">طريقة البيع</h3>
+              <div className="flex gap-3">
+                <label className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border cursor-pointer transition ${sellMethod === "messages" ? "bg-blue-50 border-blue-400 text-blue-700" : "bg-white border-slate-300 text-slate-600 hover:border-slate-400"}`}>
+                  <div
+                    onClick={() => setSellMethod("messages")}
+                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition cursor-pointer ${sellMethod === "messages" ? "border-blue-600" : "border-slate-300"}`}
+                  >
+                    {sellMethod === "messages" && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
+                  </div>
+                  <span className="text-sm font-medium">بيع عبر المراسلة</span>
+                </label>
+                <label className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border cursor-pointer transition ${sellMethod === "website" ? "bg-blue-50 border-blue-400 text-blue-700" : "bg-white border-slate-300 text-slate-600 hover:border-slate-400"}`}>
+                  <div
+                    onClick={() => setSellMethod("website")}
+                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition cursor-pointer ${sellMethod === "website" ? "border-blue-600" : "border-slate-300"}`}
+                  >
+                    {sellMethod === "website" && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
+                  </div>
+                  <span className="text-sm font-medium">بيع عبر الموقع</span>
+                </label>
+              </div>
+            </div>
+            )}
+
+            {/* Limited Quantity Checkbox */}
+            <label className="flex items-center gap-3 cursor-pointer select-none">
+              <div
+                onClick={() => setLimitedQt(!limitedQt)}
+                className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition cursor-pointer ${
+                  limitedQt
+                    ? "bg-blue-600 border-blue-600"
+                    : "border-slate-300 bg-white"
+                }`}
+              >
+                {limitedQt && (
+                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </div>
+              <span className="text-sm font-medium text-slate-700">
+                الكمية محدودة جدا — إضافة عبارة الندرة والإلحاح
+              </span>
+            </label>
+
+            {/* First Time in Algeria Checkbox */}
+            <label className="flex items-center gap-3 cursor-pointer select-none">
+              <div
+                onClick={() => setFirstTimeDz(!firstTimeDz)}
+                className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition cursor-pointer ${
+                  firstTimeDz
+                    ? "bg-blue-600 border-blue-600"
+                    : "border-slate-300 bg-white"
+                }`}
+              >
+                {firstTimeDz && (
+                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </div>
+              <span className="text-sm font-medium text-slate-700">
+                لأول مرة في الجزائر — إضافة عبارة التفرد والحصرية
+              </span>
+            </label>
+
           <div>
             <h3 className="text-lg font-semibold text-slate-800 mb-2">
               {mainTab === "creative" ? "نمط الصورة الإعلانية" : "نمط أمر التصميم"}
@@ -1051,7 +1200,7 @@ IMPORTANT: Make sure ALL text throughout the design is written strictly in ${lan
               ))}
             </div>
           </div>
-          )}
+            </>)}
 
           {/* Error */}
           {error && mainTab !== "video" && (
@@ -1059,6 +1208,65 @@ IMPORTANT: Make sure ALL text throughout the design is written strictly in ${lan
               {error}
             </div>
           )}
+
+          {/* Pre-prompts */}
+          <div className="mt-6 bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl shadow-xl p-5 md:p-6 border border-slate-700">
+            <div className="flex items-start gap-3">
+              <span className="text-yellow-400 text-xl leading-none mt-0.5 shrink-0">⚡</span>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-white text-sm mb-1">الأوامر التأسيسية — تُرسل مرة واحدة فقط</h3>
+                <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+                  اختر الأوامر المناسبة لمهمتك وأرسلها للذكاء الاصطناعي <strong className="text-yellow-400">مرة واحدة فقط</strong> في بداية المحادثة قبل أوامر المنتج.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {preprompts.map((p) => {
+                    const labels = {
+                      "avatar": { title: "شخصية المشتري", desc: "تحليل العملاء وبناء شخصيات المشتري" },
+                      "image": { title: "توليد الصور", desc: "إنشاء وتحسين الصور التسويقية" },
+                      "ads": { title: "الإعلانات المدفوعة", desc: "استراتيجيات وحملات الإعلانات" },
+                      "ad-creative": { title: "كتابة الإعلانات", desc: "توليد نصوص إعلانية احترافية" },
+                    };
+                    const l = labels[p.id] || { title: p.name, desc: "" };
+                    return (
+                      <div key={p.id} className="bg-slate-700/60 border border-slate-600 rounded-xl p-3.5 hover:border-blue-500/50 transition-all">
+                        <div className="flex items-start justify-between gap-2 mb-1.5">
+                          <h4 className="text-sm font-bold text-white">{l.title}</h4>
+                          <button
+                            onClick={async () => {
+                              try {
+                                await navigator.clipboard.writeText(p.content);
+                              } catch {
+                                const ta = document.createElement("textarea");
+                                ta.value = p.content;
+                                document.body.appendChild(ta);
+                                ta.select();
+                                document.execCommand("copy");
+                                document.body.removeChild(ta);
+                              }
+                              setCopiedPre(p.id);
+                              setTimeout(() => setCopiedPre(null), 2000);
+                            }}
+                            className={`shrink-0 text-xs font-medium py-1 px-2.5 rounded-lg border transition-all cursor-pointer ${
+                              copiedPre === p.id
+                                ? "bg-green-900/60 text-green-300 border-green-600"
+                                : "bg-slate-600 text-slate-300 border-slate-500 hover:bg-slate-500 hover:text-white"
+                            }`}
+                          >
+                            {copiedPre === p.id ? "تم ✓" : "نسخ"}
+                          </button>
+                        </div>
+                        <p className="text-xs text-slate-400 leading-relaxed">{l.desc}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-xs text-slate-400 text-center mt-4 leading-relaxed">
+            💡 للحصول على أفضل النتائج، أضف هذه الأوامر إلى الذكاء الاصطناعي — واحدة تلو الأخرى —
+          </p>
 
           {/* Generate */}
           {mainTab !== "video" && (
